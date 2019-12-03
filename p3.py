@@ -26,18 +26,15 @@ for line in content:
 
 intersect = pathpoints_list[0].intersection(pathpoints_list[1])
 
-# Part 1
-best_so_far = None
+best_manhattan = None
+best_total_dist = None
 for p in intersect:
     manhattan = abs(p[0]) + abs(p[1])
-    if best_so_far is None or manhattan < best_so_far:
-        best_so_far = manhattan
-print(best_so_far)
-    
-# Part 2
-best_so_far = None
-for p in intersect:
     total_dist = sum([d[p] for d in distances_list])
-    if best_so_far is None or total_dist < best_so_far:
-        best_so_far = total_dist
-print(best_so_far)
+    if best_manhattan is None or manhattan < best_manhattan:
+        best_manhattan = manhattan
+    if best_total_dist is None or total_dist < best_total_dist:
+        best_total_dist = total_dist
+
+print('Part 1:', best_manhattan)
+print('Part 2:', best_total_dist)
