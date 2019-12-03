@@ -10,7 +10,6 @@ for line in content:
     mass = int(line)
     fuel = mass//3 - 2
     total_basic_fuel += fuel
-    print(mass, fuel)
     while fuel > 0:
         total_extended_fuel += fuel
         fuel = fuel//3 - 2
