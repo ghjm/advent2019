@@ -14,18 +14,7 @@ for line in content:
     for step in path:
         direction = step[0]
         dist = int(step[1:])
-        if direction == 'U':
-            dx = 0
-            dy = -1
-        elif direction == 'D':
-            dx = 0
-            dy = 1
-        elif direction == 'L':
-            dx = -1
-            dy = 0
-        elif direction == 'R':
-            dx = 1
-            dy = 0
+        dx, dy = { 'U': (0, -1), 'D': (0, 1), 'L': (-1, 0), 'R': (1, 0) }[direction]
         for i in range(dist):
             cur_pos = (cur_pos[0] + dx, cur_pos[1] + dy)
             pathpoints.add(cur_pos)
