@@ -98,6 +98,12 @@ def c_in():
 def c_out(value):
     print("Output:", value)
 
+def run_program(program, debug=False, infunc=c_in, outfunc=c_out):
+    with open(program, "r") as file:
+        content = file.readlines()
+    ic = intcode([int(c) for c in content[0].split(',')])
+    ic.run(infunc, outfunc, debug=debug)
+
 if __name__ == '__main__':
     debug=False
     program=None
@@ -110,8 +116,8 @@ if __name__ == '__main__':
                 sys.exit(0)
             program = arg
 
-    with open(program, "r") as file:
-        content = file.readlines()
-    ic = intcode([int(c) for c in content[0].split(',')])
-    ic.run(c_in, c_out, debug=debug)
+    if program is None:
+        print("Usage: intcode.py program [--debug]")
+        sys.exit(0)
 
+    run_program(program, debug)

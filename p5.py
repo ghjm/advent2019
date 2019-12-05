@@ -1,23 +1,10 @@
 #!/usr/bin/python3
 
-from intcode import intcode
-
-with open("inputs/input5.txt", "r") as file:
-    content = file.readlines()
-
-def c_in():
-    print("Input: ", end="")
-    v = input()
-    return int(v)
-
-def c_out(value):
-    print("Output:", value)
-
-ic = intcode([int(c) for c in content[0].split(',')])
+from intcode import run_program
 
 print("Part 1:")
-ic.run(lambda:1, c_out, copy=True)
+run_program("inputs/input5.txt", infunc=lambda:1)
 
 print("Part 2:")
-ic.run(lambda:5, c_out, copy=True)
+run_program("inputs/input5.txt", infunc=lambda:5)
 
