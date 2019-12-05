@@ -1,5 +1,6 @@
 #!/bin/env python
 
+import sys, getopt
 from ctypes import *
 from collections.abc import Sequence
 
@@ -24,8 +25,14 @@ intcode_lib.get_item.restype = c_int
 intcode_lib.set_item.argtypes = [c_void_p, c_int, c_int]
 
 # run_program
-intcode_lib.run_program.argtypes = [c_void_p, c_int]
+intcode_lib.run_program.argtypes = [c_void_p, c_int, c_int, c_void_p, c_void_p]
 intcode_lib.run_program.restype = c_int
+
+def default_in():
+    return 0
+
+def default_out(value):
+    pass
 
 class intcode(Sequence):
     def __init__(self, memlist=None):
@@ -33,6 +40,8 @@ class intcode(Sequence):
         self._mem_size = 0
         if memlist is not None:
             self.mem_from_list(memlist)
+        self.CFUNC_IN = CFUNCTYPE(c_int)
+        self.CFUNC_OUT = CFUNCTYPE(None, c_int)
 
     def __del__(self):
         if self._mem is not None:
@@ -53,13 +62,56 @@ class intcode(Sequence):
         self._mem = intcode_lib.dup_mem((c_int * len(memlist))(*memlist), len(memlist))
         self._mem_size = len(memlist)
 
-    def run(self):
-        result = intcode_lib.run_program(self._mem, 0)
-        return result
+    def run(self, infunc = None, outfunc = None, debug=False, copy=False):
+        
+        in_cfunc = self.CFUNC_IN(default_in if infunc is None else infunc)
+        out_cfunc = self.CFUNC_OUT(default_out if outfunc is None else outfunc)
+
+        if copy:
+            mem = intcode_lib.dup_mem(self._mem, self._mem_size)
+        else:
+            mem = self._mem
+
+        result = intcode_lib.run_program(mem, 0, 1 if debug else 0, in_cfunc, out_cfunc)
+
+        if copy:
+            intcode_lib.free_mem(mem)
+
+        if result == 1:
+            raise Exception('Illegal opcode')
+        elif result == 2:
+            raise Exception('Illegal addressing mode')
+        elif result != 0:
+            raise Exception('Unknown error')
 
     def clone(self):
         new_ic = intcode()
         new_ic._mem = intcode_lib.dup_mem(self._mem, self._mem_size)
         new_ic._mem_size = self._mem_size
         return new_ic
+
+def c_in():
+    print("Input: ", end="")
+    v = input()
+    return int(v)
+
+def c_out(value):
+    print("Output:", value)
+
+if __name__ == '__main__':
+    debug=False
+    program=None
+    for arg in sys.argv[1:]:
+        if arg=='--debug' or arg=='-d':
+            debug=True
+        if not arg.startswith('-'):
+            if program is not None:
+                print("One program only, please.")
+                sys.exit(0)
+            program = arg
+
+    with open(program, "r") as file:
+        content = file.readlines()
+    ic = intcode([int(c) for c in content[0].split(',')])
+    ic.run(c_in, c_out, debug=debug)
 
