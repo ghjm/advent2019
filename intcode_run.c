@@ -45,5 +45,7 @@ int main(int argc, const char* argv[])
         program[i++] = atoi(pt);
         pt = strtok(NULL, ",");
     }
-    run_program(program, 0, 0, &infunc, &outfunc); 
+    free(prog_text);
+    run_program(program, 0, 0, &infunc, &outfunc);
+    free(program);
 }
