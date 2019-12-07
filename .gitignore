@@ -1,4 +1,6 @@
 *.pyc
 *.so
+*.o
+intcode_run
 __pycache__
 .idea/
