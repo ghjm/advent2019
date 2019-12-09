@@ -1,56 +1,56 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include "intcode.h"
 
-#define DEBUG 0
-
-#if DEBUG != 0
-#define LOG(args...) printf(args)
-#else
-#define LOG(args...)
-#endif
-
-int *alloc_mem(int size)
+INTCODE_INT_T *alloc_mem(INTCODE_INDEX_T size)
 {
-    int *new_mem = malloc(size * sizeof(int));
-    LOG("malloced size=%d pointer=%p\n", size, new_mem);
+    INTCODE_INT_T *new_mem = malloc(size * sizeof(INTCODE_INT_T));
     return(new_mem);
 }
 
-int *dup_mem(int *mem, int size)
+INTCODE_INT_T *dup_mem(INTCODE_INT_T *mem, INTCODE_INDEX_T size)
 {
-    int *new_mem = alloc_mem(size);
-    memcpy(new_mem, mem, size * sizeof(int));
-    LOG("duplicated src=%p dest=%p size=%d\n", mem, new_mem, size);
+    INTCODE_INT_T *new_mem = alloc_mem(size);
+    memcpy(new_mem, mem, size * sizeof(INTCODE_INT_T));
     return(new_mem);
 }
 
-void free_mem(int *mem)
+void free_mem(INTCODE_INT_T *mem)
 {
-    LOG("freeing %p\n", mem);
     free(mem);
 }
 
-int get_item(int *mem, int index)
+INTCODE_INT_T get_item(INTCODE_INT_T *mem, INTCODE_INDEX_T index)
 {
     return mem[index];
 }
 
-void set_item(int *mem, int index, int value)
+void set_item(INTCODE_INT_T *mem, INTCODE_INDEX_T index, INTCODE_INT_T value)
 {
     mem[index] = value;
 }
 
-typedef int (*infunc_t)(void);
-typedef void (*outfunc_t)(int);
-int run_program(int *mem, int starting_ip, int debug, infunc_t infunc, outfunc_t outfunc)
+int last_error = 0;
+
+int get_last_error()
 {
-    int ip = starting_ip;
-    int opcode;
+    return last_error;
+}
+
+INTCODE_INT_T *run_program(INTCODE_INT_T *mem, INTCODE_INDEX_T mem_size,
+        int debug, infunc_t infunc, outfunc_t outfunc)
+{
+    INTCODE_INDEX_T ip = 0;
+    INTCODE_INDEX_T relbase = 0;
+    INTCODE_INT_T opcode;
     int modes[3];
     int num_params;
     int i;
-    int *params[3];
+    INTCODE_INDEX_T param_addrs[3];
+    INTCODE_INT_T *params[3];
+
+    last_error = 0;
 
     while(1)
     {
@@ -65,6 +65,7 @@ int run_program(int *mem, int starting_ip, int debug, infunc_t infunc, outfunc_t
         {
             case 3:
             case 4:
+            case 9:
                 num_params = 1;
                 break;
             case 5:
@@ -89,16 +90,28 @@ int run_program(int *mem, int starting_ip, int debug, infunc_t infunc, outfunc_t
             {
                 case 0:  // position mode
                     if (debug) printf("  param%d position %d", i+1, ip+i+1);
-                    params[i] = &mem[mem[ip+i+1]];
+                    param_addrs[i] = mem[ip+i+1];
                     break;
                 case 1:  // immediate mode
                     if (debug) printf("  param%d value %d", i+1, ip+i+1);
-                    params[i] = &mem[ip+i+1];
+                    param_addrs[i] = ip+i+1;
+                    break;
+                case 2:  // relative mode
+                    if (debug) printf("  param%d relative %d", i+1, ip+i+1);
+                    param_addrs[i] = mem[ip+i+1]+relbase;
                     break;
                 default:  // invalid mode
-                    return 2;
+                    last_error = 2;
+                    return mem;
+            }
+            if (param_addrs[i] >= mem_size)
+            {
+                mem_size = param_addrs[i] + 8192;
+                mem = realloc(mem, mem_size*sizeof(INTCODE_INT_T));
             }
         }
+        for (i=0; i<num_params; i++)
+            params[i] = &mem[param_addrs[i]];
         if (debug) printf("\n");
 
         // increment
@@ -147,11 +160,16 @@ int run_program(int *mem, int starting_ip, int debug, infunc_t infunc, outfunc_t
                     *params[2] = 0;
                 break;
 
+            case 9:  // set-relbase
+                relbase += *params[0];
+                break;
+
             case 99:  // halt
-                return 0;
+                return mem;
 
             default:  // invalid opcode
-                return 1;
+                last_error = 1;
+                return mem;
         }
     }
 }

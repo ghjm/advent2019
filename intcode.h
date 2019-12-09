@@ -1,8 +1,16 @@
-int *alloc_mem(int size);
-int *dup_mem(int *mem, int size);
-void free_mem(int *mem);
-int get_item(int *mem, int index);
-void set_item(int *mem, int index, int value);
-typedef int (*infunc_t)(void);
-typedef void (*outfunc_t)(int);
-int run_program(int *mem, int starting_ip, int debug, infunc_t infunc, outfunc_t outfunc);
+#define INTCODE_INT_T int64_t
+#define INTCODE_INDEX_T int
+
+typedef INTCODE_INT_T (*infunc_t)(void);
+typedef void (*outfunc_t)(INTCODE_INT_T);
+
+INTCODE_INT_T *alloc_mem(INTCODE_INDEX_T size);
+INTCODE_INT_T *dup_mem(INTCODE_INT_T *mem, INTCODE_INDEX_T size);
+void free_mem(INTCODE_INT_T *mem);
+INTCODE_INT_T get_item(INTCODE_INT_T *mem, INTCODE_INDEX_T index);
+void set_item(INTCODE_INT_T *mem, INTCODE_INDEX_T index, INTCODE_INT_T value);
+typedef INTCODE_INT_T (*infunc_t)(void);
+typedef void (*outfunc_t)(INTCODE_INT_T);
+INTCODE_INT_T *run_program(INTCODE_INT_T *mem, INTCODE_INDEX_T mem_size,
+		int debug, infunc_t infunc, outfunc_t outfunc);
+int get_last_error();

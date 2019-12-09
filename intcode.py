@@ -19,14 +19,18 @@ intcode_lib.free_mem.argtypes = [c_void_p]
 
 # get_item
 intcode_lib.get_item.argtypes = [c_void_p, c_int]
-intcode_lib.get_item.restype = c_int
+intcode_lib.get_item.restype = c_longlong
 
 # set_item
-intcode_lib.set_item.argtypes = [c_void_p, c_int, c_int]
+intcode_lib.set_item.argtypes = [c_void_p, c_int, c_longlong]
 
 # run_program
 intcode_lib.run_program.argtypes = [c_void_p, c_int, c_int, c_void_p, c_void_p]
-intcode_lib.run_program.restype = c_int
+intcode_lib.run_program.restype = c_void_p
+
+# get_last_error
+intcode_lib.get_last_error.argtypes = []
+intcode_lib.get_last_error.restype = c_int
 
 def default_in():
     return 0
@@ -40,8 +44,8 @@ class intcode(Sequence):
         self._mem_size = 0
         if memlist is not None:
             self.mem_from_list(memlist)
-        self.CFUNC_IN = CFUNCTYPE(c_int)
-        self.CFUNC_OUT = CFUNCTYPE(None, c_int)
+        self.CFUNC_IN = CFUNCTYPE(c_longlong)
+        self.CFUNC_OUT = CFUNCTYPE(None, c_longlong)
 
     def __del__(self):
         if self._mem is not None:
@@ -59,7 +63,7 @@ class intcode(Sequence):
     def mem_from_list(self, memlist):
         if self._mem is not None:
             intcode_lib.free_mem(self._mem)
-        self._mem = intcode_lib.dup_mem((c_int * len(memlist))(*memlist), len(memlist))
+        self._mem = intcode_lib.dup_mem((c_longlong * len(memlist))(*memlist), len(memlist))
         self._mem_size = len(memlist)
 
     def run(self, infunc = None, outfunc = None, debug=False, copy=False):
@@ -72,16 +76,19 @@ class intcode(Sequence):
         else:
             mem = self._mem
 
-        result = intcode_lib.run_program(mem, 0, 1 if debug else 0, in_cfunc, out_cfunc)
+        new_mem = intcode_lib.run_program(mem, self._mem_size, 1 if debug else 0, in_cfunc, out_cfunc)
 
         if copy:
-            intcode_lib.free_mem(mem)
+            intcode_lib.free_mem(new_mem)
+        else:
+            self._mem = new_mem
 
+        result = intcode_lib.get_last_error()
         if result == 1:
             raise Exception('Illegal opcode')
         elif result == 2:
             raise Exception('Illegal addressing mode')
-        elif result != 0:
+        elif result > 0:
             raise Exception('Unknown error')
 
     def clone(self):
@@ -101,7 +108,10 @@ def c_out(value):
 def run_program(program, debug=False, infunc=c_in, outfunc=c_out):
     with open(program, "r") as file:
         content = file.readlines()
-    ic = intcode([int(c) for c in content[0].split(',')])
+    code = [int(c) for c in content[0].split(',')];
+    if debug:
+        print("Program:", code)
+    ic = intcode(code)
     ic.run(infunc, outfunc, debug=debug)
 
 if __name__ == '__main__':
