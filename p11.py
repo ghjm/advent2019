@@ -64,12 +64,14 @@ if __name__ == '__main__':
     ic_prog = intcode([int(c) for c in content[0].split(',')])
     
     robot = Robot()
-    ic_prog.run(infunc=robot.get_infunc(), outfunc=robot.get_outfunc())
+    ic_prog.run(infunc=robot.get_infunc(), outfunc=robot.get_outfunc(),
+            copy=True)
     print("Part 1:", len(robot.panel_colors))
     
     robot = Robot()
     robot.panel_colors[(0,0)] = 1
-    ic_prog.run(infunc=robot.get_infunc(), outfunc=robot.get_outfunc())
+    ic_prog.run(infunc=robot.get_infunc(), outfunc=robot.get_outfunc(),
+            copy=True)
     print("Part 2:")
     robot.print_map()
 
