@@ -58,7 +58,8 @@ int main(int argc, const char* argv[])
         pt = strtok(NULL, ",");
     }
     free(prog_text);
-    program = run_program(program, prog_size, debug, &infunc, &outfunc);
+    int stop_flag;
+    program = run_program(program, prog_size, debug, &stop_flag, &infunc, &outfunc);
     free(program);
     int error = get_last_error();
     if (error == 1)

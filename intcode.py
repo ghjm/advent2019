@@ -25,7 +25,7 @@ intcode_lib.get_item.restype = c_longlong
 intcode_lib.set_item.argtypes = [c_void_p, c_int, c_longlong]
 
 # run_program
-intcode_lib.run_program.argtypes = [c_void_p, c_int, c_int, c_void_p, c_void_p]
+intcode_lib.run_program.argtypes = [c_void_p, c_int, c_int, c_void_p, c_void_p, c_void_p]
 intcode_lib.run_program.restype = c_void_p
 
 # get_last_error
@@ -46,6 +46,7 @@ class intcode(Sequence):
             self.mem_from_list(memlist)
         self.CFUNC_IN = CFUNCTYPE(c_longlong)
         self.CFUNC_OUT = CFUNCTYPE(None, c_longlong)
+        self.stop_flag = c_int()
 
     def __del__(self):
         if self._mem is not None:
@@ -76,7 +77,8 @@ class intcode(Sequence):
         else:
             mem = self._mem
 
-        new_mem = intcode_lib.run_program(mem, self._mem_size, 1 if debug else 0, in_cfunc, out_cfunc)
+        new_mem = intcode_lib.run_program(mem, self._mem_size, 1 if debug else 0, 
+                byref(self.stop_flag), in_cfunc, out_cfunc)
 
         if copy:
             intcode_lib.free_mem(new_mem)
@@ -90,6 +92,9 @@ class intcode(Sequence):
             raise Exception('Illegal addressing mode')
         elif result > 0:
             raise Exception('Unknown error')
+
+    def signal_stop(self):
+        self.stop_flag.value = 1
 
     def clone(self):
         new_ic = intcode()
